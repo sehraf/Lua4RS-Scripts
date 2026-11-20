@@ -2,8 +2,8 @@
 -- (distant) mail. Every message carries the sender's complete friend list
 -- ("state", not tickets), so late or duplicate mails do no harm.
 --
--- Triggers: mail_received (apply lists), list_changed + every hour (send when
--- the own list changed, at least once a day), startup.
+-- Triggers: mail_received (apply lists), friends_changed + every hour (send
+-- when the own list changed, at least once a day), startup.
 -- Needs sandbox-write: reads mail and invites (sensitive), adds friends (write).
 --
 -- Configuration. It is part of the approved code: changing it needs a new approval.
@@ -169,7 +169,8 @@ if args and args.selftest then
 elseif args and args.msgId then
     onMail(args.msgId)
 elseif args and args.list and args.list ~= 1 then
-    -- list_changed also fires for shared folder lists (often): only friends matter
+    -- Plugin builds before 2026-11-20 had one list_changed event that also fired
+    -- for shared folder lists (often): only the friend list (1) matters.
 else
-    sendList(false) -- startup, timer, list_changed: send if changed or due
+    sendList(false) -- startup, timer, friends_changed: send if changed or due
 end

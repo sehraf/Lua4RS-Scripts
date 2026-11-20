@@ -48,8 +48,10 @@ Keeps the friend lists of several of your own RetroShare nodes in sync, using
    nothing is sent and every incoming list is ignored.
 2. Give the script write access (sandbox-write): it reads mail and invites and
    changes your friend list.
-3. Set up the triggers: `mail_received`, `list_changed`, a timer (e.g. every
-   hour) and startup.
+3. Set up the triggers: the events `mail_received` ("A mail arrives") and
+   `friends_changed` ("A friend is added or removed"), a timer (e.g. every hour)
+   and startup. In older plugin versions the friend-list event is called
+   `list_changed`.
 4. Check the log while `DRY_RUN` is enabled. Set it to `false` when you are
    happy with what the script would do.
 
