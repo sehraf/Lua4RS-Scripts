@@ -30,6 +30,10 @@ Keeps the friend lists of several of your own RetroShare nodes in sync, using
   are added and, if `REMOVE_FRIENDS` is enabled, friends the partner removed are
   removed. The first list from a new partner is answered with your own list.
 - Processed sync mails are moved to the trash. Other mail is not touched.
+- Partners that have not sent anything for `SILENT_AFTER` (3 days) are treated
+  as offline: instead of a mail per change they get a list only once per
+  `PROBE_SECONDS` (a week). As soon as they write again, they get the current
+  list right away.
 
 ### Setup
 
@@ -42,6 +46,8 @@ Keeps the friend lists of several of your own RetroShare nodes in sync, using
    | `ACCEPT_FROM`    | `{ "<partner identity id>" }` | Identities allowed to change your friends     |
    | `REMOVE_FRIENDS` | `false`                     | Also remove friends the partner removed         |
    | `RESEND_SECONDS` | `24 * 3600`                 | Send the list at least this often               |
+   | `SILENT_AFTER`   | `3 * RESEND_SECONDS`        | Partner counts as offline after this much silence |
+   | `PROBE_SECONDS`  | `7 * 24 * 3600`             | Offline partners get the list only this often   |
    | `DRY_RUN`        | `true`                      | Only log which friends would be added/removed   |
 
    The placeholder IDs must be replaced with real identity IDs; otherwise
