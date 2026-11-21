@@ -1,123 +1,94 @@
--- script to move long time offline peers to a seperated group
--- !!! this may cause a GUI lag !!!
+-- buryTheDead: move friends that have been offline for a long time into a
+-- separate group, and move them back out once they connect again.
+-- !!! with many friends this may cause a short GUI lag !!!
 
--- enter the group name
+-- name of the group for long-offline friends
 local groupName = "Graveyard"
 
--- days offline
+-- days without a connection before a friend is buried
 local limit = 30
 
--- rs.clear()
+local SECONDS_PER_DAY = 24 * 60 * 60
 
--- remove group for offline peers
+-- find our group, returns its info table (incl. peerIds) or nil
+local function findGroup()
+	for _, grp in ipairs(peers.getGroupInfoList() or {}) do
+		if grp.name == groupName then
+			return grp
+		end
+	end
+end
+
+-- find our group, create it if it does not exist yet
+local function getOrCreateGroup()
+	local grp = findGroup()
+	if not grp then
+		rs.print("creating group " .. groupName)
+		peers.addGroup({ flag = 0, id = "0", name = groupName })
+		grp = findGroup()
+	end
+	return grp
+end
+
+-- delete the group again (call this manually to clean up)
 function removeGroup()
-	local grpList = peers.getGroupInfoList()
-	for i = 1, #grpList do
-		if grpList[i]["name"] == groupName then
-			rs.print("removing " .. grpList[i]["name"] .. " (" .. grpList[i]["id"] .. ")")
-			peers.removeGroup(grpList[i]["id"])
-		end
+	local grp = findGroup()
+	if grp then
+		rs.print("removing group " .. grp.name .. " (" .. grp.id .. ")")
+		peers.removeGroup(grp.id)
 	end
 end
 
--- add group for offline peers
-function addGroup()
-	local grpInfo = {}
-	grpInfo["flag"] = 0
-	grpInfo["id"] = "0"
-	grpInfo["name"] = groupName
-	grpInfo["peerIds"] = nil
-
-	peers.addGroup(grpInfo)
-end
-
--- check whether the group exists
-function checkGroup()
-	local grpList = peers.getGroupInfoList()
-	for i = 1, #grpList do
-		if grpList[i]["name"] == groupName then
-			return true
-		end
-	end
-
-	-- didn't find anything
-	return false
-end
-
-function contains(a, array)
-	for i = 1, #array do
-		if array[i] == a then
-			return true
-		end
-	end
-	return false
-end
-
-function getGroupId()
-	local grpList = peers.getGroupInfoList()
-	for i = 1, #grpList do
-		if grpList[i]["name"] == groupName then
-			return grpList[i]["id"]
-		end
-	end
-end
-
-function getDays(details)
+-- Groups contain PGP ids (persons), the friend list contains SSL ids
+-- (locations). Collect, per PGP id, the most recent connection of any of its
+-- locations, so a person with one dead and one active location stays alive.
+local function collectLastSeen()
 	local now = os.time()
-	local diff = now - details["lastConnect"]
+	local persons = {} -- pgpId -> { name = ..., lastSeen = ... }
 
-	-- how long in days
-	local days = diff / 60 / 60 / 24
-	return math.ceil(days)
-end
-
--- function to combine everything
-function run()
-	-- create group if needed
-	if checkGroup() ~= true then addGroup() end
-
-	local grpInfo = peers.getGroupInfo( getGroupId() )
-
-	-- get infos
-	local friends = peers.getFriendList()
-
-	for i = 1, #friends do
-		local details = peers.getPeerDetails(friends[i])
-		-- get gpg id for groups
-		local id = peers.getGPGId(details["id"])
-
-		local days = getDays(details)
-
-		-- peer offline for too long?
-		if days >= limit then
-			if not contains(id, grpInfo["peerIds"]) then
-				local name = details["name"] or details["id"] or tostring(friends[i])
-				rs.print("burrying " .. name .. " (offline for " .. days .. " days)")
-				peers.assignPeerToGroup(grpInfo["id"], id, true)
+	for _, ssl in ipairs(peers.getFriendList() or {}) do
+		local details = peers.getPeerDetails(ssl)
+		local pgp = peers.getGPGId(ssl)
+		if details and pgp then
+			-- a currently connected location counts as seen right now
+			local seen = peers.isOnline(ssl) and now or (details.lastConnect or 0)
+			local p = persons[pgp]
+			if not p then
+				p = { name = details.name or pgp, lastSeen = 0 }
+				persons[pgp] = p
 			end
+			if seen > p.lastSeen then p.lastSeen = seen end
 		end
 	end
 
-	for i = 1, #friends do
-		local details = peers.getPeerDetails(friends[i])
-		-- get gpg id for groups
-		local id = peers.getGPGId(details["id"])
+	return persons, now
+end
 
-		local days = getDays(details)
+local function run()
+	local grp = getOrCreateGroup()
+	if not grp then
+		rs.print("buryTheDead: could not find or create group " .. groupName)
+		return
+	end
 
-		-- peer offline for too long?
-		if days < limit then
-			if contains(id, grpInfo["peerIds"]) then
-				local name = details["name"] or details["id"] or tostring(friends[i])
-				rs.print("unearthing " .. name)
-				peers.assignPeerToGroup(grpInfo["id"], id, false)
-			end
+	local buried = {}
+	for _, id in ipairs(grp.peerIds or {}) do buried[id] = true end
+
+	local persons, now = collectLastSeen()
+
+	for pgp, p in pairs(persons) do
+		local days = math.floor((now - p.lastSeen) / SECONDS_PER_DAY)
+		local dead = days >= limit
+
+		if dead and not buried[pgp] then
+			rs.print("burying " .. p.name .. " (offline for " .. days .. " days)")
+			peers.assignPeerToGroup(grp.id, pgp, true)
+		elseif not dead and buried[pgp] then
+			rs.print("unearthing " .. p.name)
+			peers.assignPeerToGroup(grp.id, pgp, false)
 		end
 	end
 end
 
-
--- use removeGroup() to cleanup your groups (will remove the group for offline peers)
--- go!
 run()
-rs.print('buryTheDead done')
+rs.print("buryTheDead done")
