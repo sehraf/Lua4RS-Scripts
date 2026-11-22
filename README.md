@@ -3,6 +3,25 @@
 Maintained, useful scripts for [Lua4RS](https://github.com/sehraf/Lua4RS),
 the Lua scripting plugin for RetroShare.
 
+## autoPermissions.lua
+
+Decides which friends may use which RetroShare service (file sharing, chat,
+forums, ...) by rules. Needs a Lua4RS version with the `services` functions
+(November 2026 or later).
+
+- The rules describe the complete target state: a friend no rule matches gets
+  each service's default. Exceptions set by hand in the permission matrix are
+  reset too; to keep one, write a rule for it.
+- Rules match by group, hidden node (Tor/I2P), address or name. A later rule
+  overrides an earlier one.
+- Default rules: no file sharing for the group `Strangers` and for hidden
+  nodes; only discovery for the group `Graveyard` (see buryTheDead). When
+  buryTheDead moves a friend back out, the next run restores their defaults.
+
+Give it write access (sandbox-write) and the triggers "A friend is added or
+removed", "A friend comes online", startup and a timer (e.g. every hour). It
+starts with `DRY_RUN = true` and only prints what it would change.
+
 ## buryTheDead.lua
 
 Moves friends that have been offline for a long time into a separate group,
