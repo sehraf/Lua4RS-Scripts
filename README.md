@@ -12,8 +12,10 @@ forums, ...) by rules. Needs a Lua4RS version with the `services` functions
 - The rules describe the complete target state: a friend no rule matches gets
   each service's default. Exceptions set by hand in the permission matrix are
   reset too; to keep one, write a rule for it.
-- Rules match by group, hidden node (Tor/I2P), address or name. A later rule
-  overrides an earlier one.
+- Rules match by id (an SSL id for one location, a PGP id for all locations
+  of a person), group, hidden node (Tor/I2P), address, profile name or
+  location name. A later rule overrides an earlier one. For an exception for
+  a single peer, use its id: names are chosen by your friends.
 - Default rules: no file sharing for the group `Strangers` and for hidden
   nodes; only discovery for the group `Graveyard` (see buryTheDead). When
   buryTheDead moves a friend back out, the next run restores their defaults.
