@@ -15,4 +15,4 @@ its functions.
 Setup and settings are described at the top of each script and in
 [scripts/README.md](https://github.com/sehraf/Lua4RS/blob/main/scripts/README.md).
 
-The copies in this repository are no longer updated.
+The copies in this repository are updated occasionally; the current versions are in Lua4RS.
