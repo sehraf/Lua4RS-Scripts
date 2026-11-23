@@ -1,88 +1,18 @@
 # Lua4RS Scripts
 
-Maintained, useful scripts for [Lua4RS](https://github.com/sehraf/Lua4RS),
-the Lua scripting plugin for RetroShare.
+**These scripts have moved into [Lua4RS](https://github.com/sehraf/Lua4RS)
+itself:** [`scripts/ready/`](https://github.com/sehraf/Lua4RS/tree/main/scripts/ready).
+They are bundled with the plugin and listed in the Lua4RS window under
+*Example → Ready to use*, so each plugin version ships the scripts that match
+its functions.
 
-## autoPermissions.lua
+| Script | What it does |
+|---|---|
+| `autoPermissions.lua` | Decides which friends may use which RetroShare service, by rules |
+| `buryTheDead.lua` | Moves friends that have been offline for a long time into a separate group |
+| `syncFriends.lua` | Keeps the friend lists of your own nodes in sync via RetroShare mail |
 
-Decides which friends may use which RetroShare service (file sharing, chat,
-forums, ...) by rules. Needs a Lua4RS version with the `services` functions
-(November 2026 or later).
+Setup and settings are described at the top of each script and in
+[scripts/README.md](https://github.com/sehraf/Lua4RS/blob/main/scripts/README.md).
 
-- The rules describe the complete target state: a friend no rule matches gets
-  each service's default. Exceptions set by hand in the permission matrix are
-  reset too; to keep one, write a rule for it.
-- Rules match by id (an SSL id for one location, a PGP id for all locations
-  of a person), group, hidden node (Tor/I2P), address, profile name or
-  location name. A later rule overrides an earlier one. For an exception for
-  a single peer, use its id: names are chosen by your friends.
-- Default rules: no file sharing for the group `Strangers` and for hidden
-  nodes; only discovery for the group `Graveyard` (see buryTheDead). When
-  buryTheDead moves a friend back out, the next run restores their defaults.
-
-Give it write access (sandbox-write) and the triggers "A friend is added or
-removed", "A friend comes online", startup and a timer (e.g. every hour). It
-starts with `DRY_RUN = true` and only prints what it would change.
-
-## buryTheDead.lua
-
-Moves friends that have been offline for a long time into a separate group,
-so the friend list stays readable.
-
-- Friends whose last connection is at least `limit` days ago (default: 30) are
-  assigned to the group `groupName` (default: `Graveyard`). The group is
-  created if it does not exist yet.
-- Friends in that group that have connected again are moved back out.
-- `removeGroup()` deletes the group again, if you want to clean up.
-
-Configure `groupName` and `limit` at the top of the script. Run it manually or
-on a timer. Note: with many friends, running it may make the GUI lag briefly.
-
-## syncFriends.lua
-
-Keeps the friend lists of several of your own RetroShare nodes in sync, using
-(distant) mail between your identities.
-
-- Each node mails its **complete** friend list (a short invite for each
-  location) as JSON to the identities in `SEND_TO`. Because every mail carries
-  the full state, late or duplicate mails do no harm. Sequence numbers make
-  sure older lists are ignored.
-- Lists received from identities in `ACCEPT_FROM` are applied: missing friends
-  are added and, if `REMOVE_FRIENDS` is enabled, friends the partner removed are
-  removed. The first list from a new partner is answered with your own list.
-- Processed sync mails are moved to the trash. Other mail is not touched.
-- Partners that have not sent anything for `SILENT_AFTER` (3 days) are treated
-  as offline: instead of a mail per change they get a list only once per
-  `PROBE_SECONDS` (a week). As soon as they write again, they get the current
-  list right away.
-
-### Setup
-
-1. Edit the configuration at the top of the script:
-
-   | Setting          | Default                     | Meaning                                         |
-   |------------------|-----------------------------|-------------------------------------------------|
-   | `SEND_AS`        | `"<own identity id>"`       | Your identity the mails are sent from           |
-   | `SEND_TO`        | `{ "<partner identity id>" }` | Identities that receive your friend list      |
-   | `ACCEPT_FROM`    | `{ "<partner identity id>" }` | Identities allowed to change your friends     |
-   | `REMOVE_FRIENDS` | `false`                     | Also remove friends the partner removed         |
-   | `RESEND_SECONDS` | `24 * 3600`                 | Send the list at least this often               |
-   | `SILENT_AFTER`   | `3 * RESEND_SECONDS`        | Partner counts as offline after this much silence |
-   | `PROBE_SECONDS`  | `7 * 24 * 3600`             | Offline partners get the list only this often   |
-   | `DRY_RUN`        | `true`                      | Only log which friends would be added/removed   |
-
-   The placeholder IDs must be replaced with real identity IDs; otherwise
-   nothing is sent and every incoming list is ignored.
-2. Give the script write access (sandbox-write): it reads mail and invites and
-   changes your friend list.
-3. Set up the triggers: the events `mail_received` ("A mail arrives") and
-   `friends_changed` ("A friend is added or removed"), a timer (e.g. every hour)
-   and startup. In older plugin versions the friend-list event is called
-   `list_changed`.
-4. Check the log while `DRY_RUN` is enabled. Set it to `false` when you are
-   happy with what the script would do.
-
-### Testing
-
-Running the script with `args.selftest = { from = ..., fromType = ..., message = ... }`
-simulates receiving a message. It is always read-only and never sends mail.
+The copies in this repository are no longer updated.
